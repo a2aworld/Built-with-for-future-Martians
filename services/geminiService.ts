@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 import { StoryNode, AgentResponse } from "../types";
@@ -6,7 +5,7 @@ import { StoryNode, AgentResponse } from "../types";
 /**
  * Service singleton for the Google Gemini API client.
  * In Production/Public mode, this relies on the environment variable being set
- * in the deployment platform (e.g., Google Cloud Run, Vercel).
+ * in the deployment platform (e.g., Google Cloud Run, Vercel) and injected via server.js.
  */
 let client: GoogleGenAI | null = null;
 
@@ -17,8 +16,14 @@ let client: GoogleGenAI | null = null;
  */
 export const initializeGemini = (): boolean => {
   try {
-    // In a deployed environment, process.env.API_KEY must be defined
-    // in the build settings or runtime environment variables.
+    // 1. Try Runtime Injection (from server.js -> index.html -> window.env)
+    // This is the standard path for Cloud Run / Production
+    if (typeof window !== 'undefined' && window.env && window.env.API_KEY) {
+        client = new GoogleGenAI({ apiKey: window.env.API_KEY });
+        return true;
+    }
+
+    // 2. Fallback to build-time env (for local dev)
     if (process.env.API_KEY) {
       client = new GoogleGenAI({ apiKey: process.env.API_KEY });
       return true;

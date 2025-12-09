@@ -1,3 +1,13 @@
+/**
+ * Global Window interface extension for runtime injection.
+ */
+declare global {
+  interface Window {
+    env: {
+      API_KEY: string;
+    };
+  }
+}
 
 /**
  * Represents a geographical point on Earth.
