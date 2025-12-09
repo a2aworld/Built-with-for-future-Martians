@@ -22,6 +22,12 @@ export const CupolaView: React.FC<CupolaViewProps> = ({
   const [sliderPosition, setSliderPosition] = useState(50); // 0 to 100%
   const [artistOpacity, setArtistOpacity] = useState(100); // 0 to 100%
 
+  // Science/Survey State
+  const [interactionCount, setInteractionCount] = useState(0);
+  const [showSurvey, setShowSurvey] = useState(false);
+  const [surveyState, setSurveyState] = useState<'idle' | 'voting' | 'submitted'>('idle');
+  const [voteChoice, setVoteChoice] = useState<'yes' | 'no' | null>(null);
+
   // Base URL for the artist's map
   const artistBaseUrl = `https://www.google.com/maps/d/embed?mid=${datasetId}&ehbc=2E312F`;
   
@@ -31,6 +37,10 @@ export const CupolaView: React.FC<CupolaViewProps> = ({
   useEffect(() => {
     // Trigger loading state whenever coordinates change
     setIsLoading(true);
+    // Reset survey state on new node selection to allow re-evaluation
+    setInteractionCount(0);
+    setShowSurvey(false);
+    setSurveyState('idle');
 
     let targetLat = 0;
     let targetLng = 0;
@@ -63,6 +73,29 @@ export const CupolaView: React.FC<CupolaViewProps> = ({
   const handleIframeLoad = () => {
       // Give it a split second more for tiles to render, then fade out loader
       setTimeout(() => setIsLoading(false), 500);
+  };
+
+  const handleSliderInteractionEnd = () => {
+      // Only count interactions if we haven't already voted for this location
+      if (surveyState !== 'idle') return;
+
+      const newCount = interactionCount + 1;
+      setInteractionCount(newCount);
+
+      // Trigger the "Aha!" moment after 3 meaningful interactions
+      if (newCount === 3) {
+          setShowSurvey(true);
+          setSurveyState('voting');
+      }
+  };
+
+  const handleVote = (vote: 'yes' | 'no') => {
+      setVoteChoice(vote);
+      setSurveyState('submitted');
+      // Hide the survey UI after a delay
+      setTimeout(() => {
+          setShowSurvey(false);
+      }, 3000);
   };
 
   return (
@@ -138,9 +171,60 @@ export const CupolaView: React.FC<CupolaViewProps> = ({
         max="100" 
         value={sliderPosition} 
         onChange={(e) => setSliderPosition(parseInt(e.target.value))}
+        onMouseUp={handleSliderInteractionEnd}
+        onTouchEnd={handleSliderInteractionEnd}
         className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-40" 
         title="Drag to Compare"
       />
+
+      {/* --- CROWDSOURCED SCIENCE SURVEY --- */}
+      {showSurvey && (
+          <div className="absolute inset-0 z-[120] flex items-center justify-center pointer-events-none">
+              <div className="bg-slate-900/95 backdrop-blur-xl border border-gold-500/30 p-8 rounded-lg shadow-2xl max-w-sm text-center pointer-events-auto animate-fade-in">
+                  
+                  {surveyState === 'voting' ? (
+                      <>
+                        <div className="mb-4">
+                            <span className="text-gold-500 text-xs font-mono tracking-widest uppercase">Visual Confirmation Protocol</span>
+                        </div>
+                        <h2 className="text-2xl font-serif text-paper-100 mb-6 font-bold">
+                            Do You See It?
+                        </h2>
+                        <div className="flex gap-4 justify-center">
+                            <button 
+                                onClick={() => handleVote('yes')}
+                                className="px-6 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/50 text-green-400 rounded hover:scale-105 transition-all font-mono text-sm uppercase"
+                            >
+                                YES
+                            </button>
+                            <button 
+                                onClick={() => handleVote('no')}
+                                className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:scale-105 transition-all font-mono text-sm uppercase"
+                            >
+                                NO
+                            </button>
+                        </div>
+                      </>
+                  ) : (
+                      <div className="py-4">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${voteChoice === 'yes' ? 'bg-green-500/20 text-green-400' : 'bg-slate-700 text-slate-400'}`}>
+                              {voteChoice === 'yes' ? (
+                                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                              ) : (
+                                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              )}
+                          </div>
+                          <h3 className="text-lg font-serif text-paper-100 mb-2">
+                              {voteChoice === 'yes' ? 'Pattern Confirmed' : 'Divergence Recorded'}
+                          </h3>
+                          <p className="text-xs text-slate-400 font-sans tracking-wide">
+                              Adding data to the Global Consensus...
+                          </p>
+                      </div>
+                  )}
+              </div>
+          </div>
+      )}
 
       {/* --- CONTROLS OVERLAY (Bottom Right) --- */}
       {/* z-[100] ensures this sits ON TOP of everything. stopPropagation prevents slider drag. */}
