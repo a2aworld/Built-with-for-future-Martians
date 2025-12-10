@@ -19,6 +19,11 @@ export const initializeGemini = (): boolean => {
     // 1. Try Runtime Injection (from server.js -> index.html -> window.env)
     // This is the standard path for Cloud Run / Production
     if (typeof window !== 'undefined' && window.env && window.env.API_KEY) {
+        // Sanity Check: Is it a placeholder?
+        if (window.env.API_KEY.includes('your_google_gemini_api_key')) {
+            console.warn("API Key is still the default placeholder.");
+            return false;
+        }
         client = new GoogleGenAI({ apiKey: window.env.API_KEY });
         return true;
     }
@@ -47,7 +52,7 @@ export const initializeGemini = (): boolean => {
 const generateText = async (node: StoryNode): Promise<string> => {
     if (!client) {
        const success = initializeGemini();
-       if (!success) return "Connection Lost. Please contact Mission Control (Check API_KEY configuration).";
+       if (!success) return "Connection Lost. Please contact Mission Control (Check API_KEY configuration in Cloud Run).";
     }
     
     const prompt = `
@@ -74,7 +79,7 @@ const generateText = async (node: StoryNode): Promise<string> => {
         return response.text || "The Archives are silent.";
     } catch (e) {
         console.error("Text Generation Error:", e);
-        return "Transmission Interrupted.";
+        return "Transmission Interrupted. (Check API Quota or Key Validity)";
     }
 };
 
@@ -146,7 +151,7 @@ export const generateStoryResponse = async (node: StoryNode): Promise<AgentRespo
     const success = initializeGemini();
     if (!success) {
         return {
-            text: "System Alert: API Key not detected in environment variables. Please configure the satellite uplink.",
+            text: "System Alert: API Key not detected. Please verify your Cloud Run 'Variables' settings.",
             emotionalTone: 'Analytical'
         };
     }

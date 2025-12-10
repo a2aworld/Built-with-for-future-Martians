@@ -23,12 +23,18 @@ app.get('*', (req, res) => {
     }
 
     // INJECT THE API KEY AT RUNTIME
-    // This allows Google Cloud Run environment variables to be passed to the client
-    const apiKey = process.env.API_KEY || '';
+    let apiKey = process.env.API_KEY || '';
     
+    // SANITIZATION PROTOCOL:
+    // 1. Trim whitespace
+    // 2. Remove surrounding quotes (single or double) if the user added them in Cloud Run
+    apiKey = apiKey.trim().replace(/^['"]|['"]$/g, '');
+
     // Safety check: Don't crash if key is missing, but log warning
     if (!apiKey) {
-        console.warn("WARNING: No API_KEY environment variable set!");
+        console.warn("WARNING: No API_KEY environment variable set! App will assume offline mode.");
+    } else {
+        console.log("API_KEY loaded and sanitized.");
     }
 
     const injectedHtml = htmlData.replace(
