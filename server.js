@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 8080;
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Silencer for favicon requests to prevent 404 errors in logs
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Handle all other routes by serving index.html with injected ENV
 app.get('*', (req, res) => {
   const indexPath = path.join(__dirname, 'dist', 'index.html');

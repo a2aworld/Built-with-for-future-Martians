@@ -30,8 +30,17 @@ function App() {
   useEffect(() => {
     if (!hasInitialized.current && STORY_NODES.length > 0) {
         hasInitialized.current = true;
-        // Trigger Ganesha immediately
-        handleNodeSelect(STORY_NODES[0]);
+        
+        // SYSTEM WARMUP: 
+        // We add a slight delay (1.5s) to allow the "Neural Link" (API Connection) to stabilize.
+        // This prevents race conditions on cold boots where the environment variables 
+        // might be hydrating or the Service Worker is taking control.
+        const bootTimer = setTimeout(() => {
+             // Trigger Ganesha
+             handleNodeSelect(STORY_NODES[0]);
+        }, 1500);
+
+        return () => clearTimeout(bootTimer);
     }
   }, []);
 
