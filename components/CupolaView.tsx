@@ -21,6 +21,7 @@ export const CupolaView: React.FC<CupolaViewProps> = ({
   // Slider State
   const [sliderPosition, setSliderPosition] = useState(50); // 0 to 100%
   const [artistOpacity, setArtistOpacity] = useState(100); // 0 to 100%
+  const [hasInteracted, setHasInteracted] = useState(false); // Track if user has touched the slider
 
   // Mobile Detection for Zoom Adjustment
   const [isMobile, setIsMobile] = useState(false);
@@ -154,8 +155,20 @@ export const CupolaView: React.FC<CupolaViewProps> = ({
         className="absolute top-0 bottom-0 z-20 w-px bg-white/50 cursor-ew-resize flex items-center justify-center pointer-events-none backdrop-blur-sm"
         style={{ left: `${sliderPosition}%` }}
       >
-          <div className="w-6 h-12 bg-white/90 rounded flex items-center justify-center shadow-lg border border-slate-300">
-              <svg className="w-3 h-3 text-slate-600" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/><path d="M16 5v14l-11-7z"/></svg>
+          <div className="relative">
+              {/* The Handle */}
+              <div className="w-6 h-12 bg-white/90 rounded flex items-center justify-center shadow-lg border border-slate-300 relative z-20">
+                  <svg className="w-3 h-3 text-slate-600" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/><path d="M16 5v14l-11-7z"/></svg>
+              </div>
+
+              {/* The Flashing Indicator (Disappears on Interaction) */}
+              {!hasInteracted && !isLoading && (
+                  <div className="absolute left-8 top-1/2 -translate-y-1/2 animate-pulse z-10 pointer-events-none">
+                     <span className="text-[10px] font-mono font-bold text-gold-500 bg-slate-900/90 px-2 py-1.5 rounded border border-gold-500/50 shadow-xl whitespace-nowrap flex items-center gap-2">
+                        <span className="text-[8px]">◄</span> SLIDE <span className="text-[8px]">►</span>
+                     </span>
+                  </div>
+              )}
           </div>
       </div>
 
@@ -166,7 +179,10 @@ export const CupolaView: React.FC<CupolaViewProps> = ({
         min="0" 
         max="100" 
         value={sliderPosition} 
-        onChange={(e) => setSliderPosition(parseInt(e.target.value))}
+        onChange={(e) => {
+            setSliderPosition(parseInt(e.target.value));
+            if (!hasInteracted) setHasInteracted(true);
+        }}
         className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-40" 
         title="Drag to Reveal"
       />
