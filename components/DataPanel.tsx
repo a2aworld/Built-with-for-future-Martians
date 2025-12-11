@@ -21,6 +21,11 @@ export const DataPanel: React.FC<DataPanelProps> = ({ onSelectNode, selectedNode
   return (
     <div className="h-full flex flex-col bg-slate-800/90 w-full md:w-80 font-sans backdrop-blur-xl">
       <div className="p-6 border-b border-slate-700/50">
+        {/* Mission Statement / Abstract */}
+        <p className="text-[10px] text-slate-400 font-sans leading-relaxed mb-6 border-l-2 border-gold-500 pl-3 italic opacity-80">
+          "An Open Source MVP Proof of Concept demonstrating a novel methodology for encoding human heritage onto the planetary surface, preserving our shared human story for future generations."
+        </p>
+
         <h2 className="text-xs font-mono text-gold-500 uppercase tracking-widest mb-1">Index</h2>
         <h1 className="text-xl font-serif text-paper-100 font-bold">Research Nodes</h1>
       </div>
