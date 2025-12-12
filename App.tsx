@@ -24,6 +24,7 @@ function App() {
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string; imageUrl?: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [mobileTab, setMobileTab] = useState<MobileTab>('viewport'); // Default to map on mobile
+  const [isCinematic, setIsCinematic] = useState(false); // DIRECTOR MODE state
   const hasInitialized = useRef(false);
   
   // AUTO-BOOT SEQUENCE: Load Ganesha immediately
@@ -32,13 +33,13 @@ function App() {
         hasInitialized.current = true;
         
         // SYSTEM WARMUP: 
-        // We add a slight delay (1.5s) to allow the "Neural Link" (API Connection) to stabilize.
+        // We add a slight delay (3.5s) to allow the "Neural Link" (API Connection) to stabilize.
         // This prevents race conditions on cold boots where the environment variables 
         // might be hydrating or the Service Worker is taking control.
         const bootTimer = setTimeout(() => {
              // Trigger Ganesha
              handleNodeSelect(STORY_NODES[0]);
-        }, 1500);
+        }, 3500);
 
         return () => clearTimeout(bootTimer);
     }
@@ -81,7 +82,7 @@ function App() {
       <div className="absolute inset-0 pointer-events-none z-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"></div>
 
       {/* Top Bar / Research Header - Compact on Mobile */}
-      <div className="z-20 flex-none bg-slate-800/90 p-2 md:p-3 border-b border-slate-700/50 backdrop-blur-md shadow-sm">
+      <div className="z-20 flex-none bg-slate-800/90 p-2 md:p-3 border-b border-slate-700/50 backdrop-blur-md shadow-sm transition-all duration-500">
         <div className="flex justify-between items-center px-2">
             <div className="flex items-center gap-4">
                 <div className="flex flex-col">
@@ -99,9 +100,33 @@ function App() {
                 </div>
             </div>
             
-            <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span className="text-[8px] md:text-[10px] font-mono text-slate-400 uppercase tracking-widest">Online</span>
+            <div className="flex items-center gap-4">
+                {/* Director Mode / Cinematic Toggle */}
+                <button 
+                  onClick={() => setIsCinematic(!isCinematic)}
+                  className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-300 ${
+                    isCinematic 
+                    ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse' 
+                    : 'bg-slate-700/50 border-slate-600 text-slate-400 hover:text-gold-500 hover:border-gold-500'
+                  }`}
+                  title={isCinematic ? "Exit Director Mode" : "Enter Director Mode (Hide UI for Recording)"}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      {isCinematic ? (
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      ) : (
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      )}
+                    </svg>
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider">
+                        {isCinematic ? 'REC' : 'Director Mode'}
+                    </span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-[8px] md:text-[10px] font-mono text-slate-400 uppercase tracking-widest">Online</span>
+                </div>
             </div>
         </div>
       </div>
@@ -110,23 +135,29 @@ function App() {
       <div className="flex-1 flex overflow-hidden relative z-10">
         
         {/* PANEL 1: ARCHIVE (Data List) */}
+        {/* Hidden in Cinematic Mode */}
         <div className={`
-            absolute inset-0 z-20 bg-slate-900 md:static md:w-80 md:border-r md:border-slate-700/50 md:z-auto transition-opacity duration-300
+            absolute inset-0 z-20 bg-slate-900 md:static md:w-80 md:border-r md:border-slate-700/50 md:z-auto transition-all duration-500 ease-in-out
             ${mobileTab === 'archive' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto'}
+            ${isCinematic ? 'md:w-0 md:opacity-0 md:overflow-hidden md:border-none' : ''}
         `}>
-            <DataPanel 
-              onSelectNode={handleNodeSelect} 
-              selectedNodeId={selectedNode?.id || null} 
-            />
+            <div className={`${isCinematic ? 'hidden' : 'block h-full'}`}>
+              <DataPanel 
+                onSelectNode={handleNodeSelect} 
+                selectedNodeId={selectedNode?.id || null} 
+              />
+            </div>
         </div>
 
         {/* PANEL 2: VIEWPORT (The Map) */}
+        {/* Expands in Cinematic Mode */}
         {/* We keep this mounted but hidden via CSS on mobile to preserve iframe state */}
         <div className={`
-            absolute inset-0 z-10 md:static md:flex-[2] md:p-6 md:min-w-0 transition-opacity duration-300
+            absolute inset-0 z-10 md:static transition-all duration-500 ease-in-out
             ${mobileTab === 'viewport' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto'}
+            ${isCinematic ? 'md:flex-1 w-full p-0' : 'md:flex-[2] md:p-6 md:min-w-0'}
         `}>
-            <div className="w-full h-full md:rounded-xl md:overflow-hidden md:shadow-2xl md:border md:border-slate-600/30 bg-black">
+            <div className={`w-full h-full bg-black transition-all duration-500 ${isCinematic ? '' : 'md:rounded-xl md:overflow-hidden md:shadow-2xl md:border md:border-slate-600/30'}`}>
                 <CupolaView 
                     datasetId="1Vgo4n2MUqNzl8pZ_enSFpTm6S7BD-KxI"
                     selectedLat={selectedNode?.coordinates.lat}
@@ -137,11 +168,13 @@ function App() {
         </div>
 
         {/* PANEL 3: COMMS (The Agent) */}
+        {/* Hidden in Cinematic Mode */}
         <div className={`
-            absolute inset-0 z-20 bg-slate-900 md:static md:flex-1 md:p-6 md:pl-0 md:min-w-0 transition-opacity duration-300
+            absolute inset-0 z-20 bg-slate-900 md:static md:flex-1 md:p-6 md:pl-0 md:min-w-0 transition-all duration-500 ease-in-out
             ${mobileTab === 'comms' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none md:opacity-100 md:pointer-events-auto'}
+            ${isCinematic ? 'md:flex-0 md:w-0 md:p-0 md:opacity-0 md:overflow-hidden' : ''}
         `}>
-            <div className="w-full h-full md:h-full">
+            <div className={`w-full h-full md:h-full ${isCinematic ? 'hidden' : 'block'}`}>
                 <AgentInterface messages={messages} isLoading={isLoading} />
             </div>
         </div>
@@ -149,7 +182,7 @@ function App() {
       </div>
 
       {/* MOBILE BOTTOM NAVIGATION BAR (Visible only on small screens) */}
-      <div className="md:hidden z-50 bg-slate-900 border-t border-slate-700 flex justify-around items-center p-2 pb-safe">
+      <div className={`md:hidden z-50 bg-slate-900 border-t border-slate-700 flex justify-around items-center p-2 pb-safe transition-transform duration-300 ${isCinematic ? 'translate-y-full' : ''}`}>
           <button 
             onClick={() => setMobileTab('archive')}
             className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-colors ${mobileTab === 'archive' ? 'text-gold-500 bg-slate-800' : 'text-slate-500'}`}
